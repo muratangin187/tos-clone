@@ -100,7 +100,7 @@ io.on("connection",(socket)=>{
                         killMostVoted();
                         status = "Day";
                     }
-                    time = 5;
+                    time = 120;
                 }else{
                     time = time - 1;
                 }
