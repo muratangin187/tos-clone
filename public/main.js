@@ -18,6 +18,7 @@ let usersChat = [];
 const timerDOM = document.getElementById('timer');
 const statusDOM = document.getElementById('status');
 const buttonsDOM = document.getElementById("vote_buttons");
+const chatMessages = document.querySelector('.chat-messages');
 let currentUI = "Day";
 let time = 0;
 let status = "Day";
@@ -166,6 +167,25 @@ function dayClearUI(){
     }
 }
 
+function lookoutUI(){
+    if(currentUI != "Lookout"){
+        buttonsDOM.innerHTML = "";
+        users.forEach((user)=>{
+            //<button id="murat">VOTE FOR MURAT</button>
+            const btn = document.createElement("button");
+            btn.id = user.username;
+            btn.innerText = `LOOK OUT ${user.username}`;
+            btn.style.backgroundColor = "lightgrey";
+            btn.style.color = "black";
+            btn.style.display = "block";
+            btn.style.margin = "10px auto";
+            btn.addEventListener("click", (e)=>{lookoutVote(e.srcElement.id);})
+            buttonsDOM.appendChild(btn);
+        });
+        currentUI = "Lookout";
+    }
+}
+
 function doctorUI(){
     if(currentUI != "Doctor"){
         buttonsDOM.innerHTML = "";
@@ -184,6 +204,21 @@ function doctorUI(){
         currentUI = "Doctor";
     }
 }
+
+function veteranUI(){
+    if(currentUI != "Veteran"){
+        buttonsDOM.innerHTML = "";
+        const btn = document.createElement("button");
+        btn.innerText = `OPEN ALARM`;
+        btn.style.backgroundColor = "red";
+        btn.style.color = "white";
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+        btn.addEventListener("click", (e)=>{veteranVote();})
+        buttonsDOM.appendChild(btn);
+    }
+}
+
 
 function render(){
     const ul = document.getElementById("users");
@@ -214,6 +249,10 @@ function render(){
             werewolfUI();
         }else if(player.role == "Doctor"  && !userKilled){
             doctorUI();
+        }else if(player.role == "Lookout"  && !userKilled){
+            lookoutUI();
+        }else if(player.role == "Veteran"  && !userKilled){
+            veteranUI();
         }
     }else if(status == "Day"){
         // Day rendering
@@ -244,8 +283,29 @@ function doctorVote(voted) {
         users.forEach(user => {
             if(user.username.toLowerCase() == voted.toLowerCase()){
                 sendSystemMessage("You will protect " + user.username + " this night!", 1, "me");
-                user.protected = true;;
-                socket.emit("doctor_update_user",{user});
+                user.protected = true;
+                socket.emit("doctor_update_user",{user, player});
+            }
+        });
+        notVoted = false;
+    }
+}
+
+function veteranVote(){
+    if(notVoted == true){
+        sendSystemMessage("You will protect yourself this night!", 1, "me");
+        player.protected = true;
+        socket.emit("veteran_update_user",{player});
+        notVoted = false;
+    }
+}
+
+function lookoutVote(voted) {
+    if(notVoted == true){
+        users.forEach(user => {
+            if(user.username.toLowerCase() == voted.toLowerCase()){
+                sendSystemMessage("You will lookout " + user.username + " this night!", 1, "me");
+                socket.emit("lookout_update_user",{user, player});
             }
         });
         notVoted = false;
@@ -303,6 +363,8 @@ function addMessage(message){
         <span>${message.date}</span></p>
      <p class="text">${message.message}</p>`;
     msgBox.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
 }
 
 function sendMessage(e){
@@ -332,7 +394,7 @@ function sendSystemMessage(message, type, to){
 }
 
 socket.on("messageN",(socket)=>{
-    console.log(`Gece mesaji ${socket}`);
+    //console.log(`Gece mesaji ${socket}`);
     addMessage(socket); 
 });
 

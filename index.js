@@ -23,6 +23,14 @@ app.get("/time/:time", (req, res)=>{
     res.send(`Maximum time set to ${maxTime}`);
 });
 
+app.get("/roles/", (req, res)=>{
+    rolesURL = req.query.names.split(';');
+    roles = rolesURL;
+    let result = "Roles set to ";
+    roles.forEach((role)=>{result+=role + " "});
+    res.send(result);
+});
+
 class User{
     constructor(username, password, role, status){
         this.id = -1;
@@ -49,7 +57,8 @@ let usersChat = {All:[], Werewolf:[]};
 let readyGame = false;
 let time = 0;
 let status = "Day";
-let roles = ["Villager","Doctor","Villager","Villager","Werewolf","Werewolf","Werewolf"];
+let rolesURL;
+let roles = ["Villager","Doctor","Veteran","Villager","Werewolf","Werewolf","Werewolf", "Lookout"];
 let gameFinished = false;
 let winner = "";
 let gameLoop;
@@ -182,7 +191,10 @@ io.on("connection",(socket)=>{
         readyGame = false;
         time = 0;
         status = "Day";
-        roles = ["Villager","Doctor","Villager","Villager","Werewolf","Werewolf","Werewolf"];
+        if(rolesURL == undefined)
+            roles = ["Villager","Doctor","Veteran","Villager","Werewolf","Werewolf","Werewolf", "Lookout"];
+        else   
+            roles = rolesURL;
         gameFinished = false;
         winner = "";
         clearInterval(gameLoop);
@@ -204,10 +216,62 @@ io.on("connection",(socket)=>{
         users.forEach((user)=>{
             if(user.username == newUser.username){
                 user.protected = newUser.protected;
+                if(user.role == "Veteran")
+                    youDied = true;
+            }
+        });
+        if(youDied){
+            let killedUser = afterVoteSocket.player;
+            let selectedUserId;
+            users.forEach((user, index)=>{
+                if(user.username == killedUser.username)
+                    selectedUserId = index;
+            });
+            users.splice(selectedUserId, 1);
+            voteClear();
+            io.emit("after_killed_users", {users,killedUser, type:0});
+        }else{
+            io.emit("current_users", {users});
+        }
+    });
+
+    socket.on("veteran_update_user",(afterVoteSocket)=>{
+        newUser = afterVoteSocket.player;
+        users.forEach((user)=>{
+            if(user.username == newUser.username){
+                user.protected = newUser.protected;
             }
         });
         io.emit("current_users", {users});
     });
+
+    socket.on("lookout_update_user",(afterVoteSocket)=>{
+        newUser = afterVoteSocket.user;
+        let selectedRole;
+        let youDied = false;
+        users.forEach((user)=>{
+            if(user.username == newUser.username){
+                selectedRole = user.role;
+                if(user.role == "Veteran")
+                    youDied = true;
+            }
+        });
+        if(youDied){
+            let killedUser = afterVoteSocket.player;
+            let selectedUserId;
+            users.forEach((user, index)=>{
+                if(user.username == killedUser.username)
+                    selectedUserId = index;
+            });
+            users.splice(selectedUserId, 1);
+            voteClear();
+            io.emit("after_killed_users", {users,killedUser, type:0});
+        }else{
+            socket.emit("messageD", createMessage("System", "The role of "+newUser.username + " is " + selectedRole, 1));
+            io.emit("current_users", {users});
+        }
+    });
+    
 
     socket.on("disconnect",(exitedUser)=>{
         users.forEach((value, index)=>{
@@ -268,7 +332,7 @@ function killMostVoted() {
                 max = user.werewolfVote;
             }else if(max = user.werewolfVote){
                 selectedUserId = undefined;
-                max = user.vote;
+                max = user.werewolfVote;
             }
         });
         //console.log(selectedUserId);
@@ -284,9 +348,27 @@ function killMostVoted() {
                 voteClear();
                 io.emit("after_killed_users", {users,killedUser, type:0});
             }else{
-                voteClear();
-                io.to("All").emit("messageD", createMessage("System", "There is no death, interesting...", 1));
-                io.emit("current_users",{users});
+                if(users[selectedUserId].role == "Veteran"){
+                    users.forEach((user, index)=>{
+                        if(user.role == "Werewolf")
+                            selectedUserId = index;
+                    });
+                    if(selectedUserId != undefined){
+                        let killedUser = users[selectedUserId];
+                        users.splice(selectedUserId, 1);
+                        // console.log("AFTER DEATH USERS");
+                        voteClear();
+                        io.emit("after_killed_users", {users,killedUser, type:0});
+                    }else{
+                        voteClear();
+                        io.to("All").emit("messageD", createMessage("System", "There is no death, interesting...", 1));
+                        io.emit("current_users",{users});
+                    }
+                }else{
+                    voteClear();
+                    io.to("All").emit("messageD", createMessage("System", "There is no death, interesting...", 1));
+                    io.emit("current_users",{users});
+                }
             }
         }else{
             voteClear();
@@ -299,7 +381,7 @@ function killMostVoted() {
     let villageWin = true;
     let werewolfWin = true;
     users.forEach((user) =>{
-        if(user.role == "Villager" || user.role == "Doctor"){
+        if(user.role == "Villager" || user.role == "Doctor" || user.role == "Lookout"){
             werewolfWin = false;
         }else if(user.role == "Werewolf"){
             villageWin = false;
