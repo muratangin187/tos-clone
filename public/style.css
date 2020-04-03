@@ -56,6 +56,9 @@ button:hover{
     background-color:#fff ;
 }
 
+button:disabled{
+	background-color: yellow;
+}
 
 .btn {
 	cursor: pointer;

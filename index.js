@@ -61,7 +61,7 @@ io.on("connection",(socket)=>{
         if(readyGame){
             //socket.emit("error","You cannot join, game is already started.");
         }else{
-            console.log("User joined");
+            //console.log("User joined");
             let existingUser = undefined;
             users.forEach((user)=>{
                if(user.username === newUserSocket.player.username)
@@ -80,8 +80,8 @@ io.on("connection",(socket)=>{
             //get user and send it to room
             //socket.join(newUserSocket.player.role);
             socket.join("All");
-            console.log(newUserSocket.player.role);
-            console.log(newUserSocket.player.role == "Werewolf");
+            //console.log(newUserSocket.player.role);
+            //console.log(newUserSocket.player.role == "Werewolf");
             if(newUserSocket.player.role == "Werewolf"){
                 socket.join("Werewolf");
                 usersChat.Werewolf.push(newUserSocket.player.username);
@@ -92,13 +92,30 @@ io.on("connection",(socket)=>{
 
             socket.emit("messageD", createMessage("Server", `Welcome to chat room ${newUserSocket.player.username}.`, 0));
             socket.on("messageD", (socket3)=>{
-                    io.to("All").emit("messageD", createMessage(socket3.username, socket3.message,1));
-                });
+                io.to("All").emit("messageD", createMessage(socket3.username, socket3.message,1));
+            });
             socket.on("messageN", (socket3)=>{
-                    console.log(`Gece mesaji ${socket3.username} mesaj: ${socket3.message}`);
-                    console.log(usersChat);
-                    io.to("Werewolf").emit("messageN", createMessage(socket3.username, socket3.message,1));
-                });
+                //console.log(`Gece mesaji ${socket3.username} mesaj: ${socket3.message}`);
+                //console.log(usersChat);
+                io.to("Werewolf").emit("messageN", createMessage(socket3.username, socket3.message,1));
+            });
+            socket.on("messageS", (socket3)=>{
+                if(socket3.type == 0){
+                    // system to everyone
+                    io.to("All").emit("messageD", createMessage("System", socket3.message, 1));
+                }else if(socket3.type == 1){
+                    // system to socket3.to
+                    if(socket3.to == "Werewolf"){
+                        io.to("Werewolf").emit("messageD", createMessage("System", socket3.message, 1));
+                    }else if(socket3.to == "Villager"){
+                        io.to("All").emit("messageD", createMessage("System", socket3.message, 1));
+                    }else{
+                        // to a person
+                        socket.emit("messageD", createMessage("System", socket3.message, 1));
+                    }
+                    
+                }
+            });
             //socket.broadcast.to(newUserSocket.player.role).emit("message", createMessage("Server", `${newUserSocket.player.username} joined chat!`, 0));
             socket.on("disconnect", (socket4)=>{
             if(newUserSocket.player.role == "Werewolf"){
@@ -223,6 +240,9 @@ function killMostVoted() {
             if(max < user.vote){
                 selectedUserId = index;
                 max = user.vote;
+            }else if(max = user.vote){
+                selectedUserId = undefined;
+                max = user.vote;
             }
         });
         if(selectedUserId != undefined){
@@ -231,35 +251,51 @@ function killMostVoted() {
             //    userKilled = true;
             //}
             //console.log(`User ${users[selectedUserId].username} killed with votes`);
+            let killedUser = users[selectedUserId];
             users.splice(selectedUserId, 1);
             voteClear();
-            io.emit("after_killed_users", {users});
+            io.emit("after_killed_users", {users,killedUser, type:1});
+        }else{
+            voteClear();
+            io.to("All").emit("messageD", createMessage("System", "No one hanged because of equality", 1));
+            io.emit("current_users",{users});
         }
     }else if(status == "Night"){
-        console.log(users);
+        //console.log(users);
         users.forEach((user, index) => {
             if(max < user.werewolfVote){
                 selectedUserId = index;
                 max = user.werewolfVote;
+            }else if(max = user.werewolfVote){
+                selectedUserId = undefined;
+                max = user.vote;
             }
         });
-        console.log(selectedUserId);
+        //console.log(selectedUserId);
         if(selectedUserId != undefined){
             if(!users[selectedUserId].protected){
                 // document.querySelector("button#"+users[selectedUserId].username).remove();
                 // if(player.username == users[selectedUserId]){
                 //     killUser();
                 // }
+                let killedUser = users[selectedUserId];
                 users.splice(selectedUserId, 1);
                 // console.log("AFTER DEATH USERS");
                 voteClear();
-                io.emit("after_killed_users", {users});
+                io.emit("after_killed_users", {users,killedUser, type:0});
             }else{
-                //console.log(`SOMEONE PROTECTED(${users[selectedUserId].username})`);
+                voteClear();
+                io.to("All").emit("messageD", createMessage("System", "There is no death, interesting...", 1));
+                io.emit("current_users",{users});
             }
+        }else{
+            voteClear();
+            io.to("All").emit("messageD", createMessage("System", "There is no death, interesting...", 1));
+            io.emit("current_users",{users});
         }
     }
 
+    // check win after every kill attempt
     let villageWin = true;
     let werewolfWin = true;
     users.forEach((user) =>{
@@ -269,8 +305,8 @@ function killMostVoted() {
             villageWin = false;
         }
     });
-    console.log(villageWin);
-    console.log(werewolfWin);
+    //console.log(villageWin);
+    //console.log(werewolfWin);
     if(villageWin && !werewolfWin){
         gameFinished = true;
         winner = "Villager";
@@ -289,7 +325,7 @@ function randomRole(){
     let randomIndex = Math.floor(Math.random() * roles.length);
     let randomString = roles[randomIndex];
     roles.splice(randomIndex, 1);
-    console.log(roles);
+    //console.log(roles);
     return randomString;
 }
 
