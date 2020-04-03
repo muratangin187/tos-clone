@@ -21,7 +21,7 @@ const users = [new User("Murat", "12345", "Villager", 1),
                 new User("Alper", "asdasd", "Villager", 1),
                 new User("Can", "asdasd", "Villager", 1)];
 
-const player = users[2];
+const player = users[1];
 
 const timer = document.getElementById('timer');
 const status = document.getElementById('status');
