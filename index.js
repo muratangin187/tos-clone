@@ -161,6 +161,7 @@ io.on("connection",(socket)=>{
     socket.on("finishGameS",()=>{
         console.log("game finished");
         users = [];
+        usersChat = {All:[], Werewolf:[]};
         readyGame = false;
         time = 0;
         status = "Day";
