@@ -18,6 +18,11 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
+app.get("/time/:time", (req, res)=>{
+    maxTime = req.params.time;
+    res.send(`Maximum time set to ${maxTime}`);
+});
+
 class User{
     constructor(username, password, role, status){
         this.id = -1;
@@ -43,10 +48,11 @@ let users = [];
 let readyGame = false;
 let time = 0;
 let status = "Day";
-let roles = ["Villager","Villager","Villager","Villager","Werewolf","Werewolf","Werewolf"];
+let roles = ["Villager","Doctor","Villager","Villager","Werewolf","Werewolf","Werewolf"];
 let gameFinished = false;
 let winner = "";
 let gameLoop;
+let maxTime = 60;
 
 io.on("connection",(socket)=>{
     //console.log("Someone connected with id:" + socket.id );
@@ -100,7 +106,7 @@ io.on("connection",(socket)=>{
                         killMostVoted();
                         status = "Day";
                     }
-                    time = 120;
+                    time = maxTime;
                 }else{
                     time = time - 1;
                 }
@@ -116,6 +122,13 @@ io.on("connection",(socket)=>{
 
     socket.on("finishGameS",()=>{
         console.log("game finished");
+        users = [];
+        readyGame = false;
+        time = 0;
+        status = "Day";
+        roles = ["Villager","Doctor","Villager","Villager","Werewolf","Werewolf","Werewolf"];
+        gameFinished = false;
+        winner = "";
         clearInterval(gameLoop);
     })
 

@@ -26,7 +26,7 @@ let time = 0;
 let status = "Day";
 let elapsedTime = 0;
 let userKilled = false;
-
+let notVoted = true;
 // io things
 socket.on("current_users", (currentUsersSocket)=>{
     users = currentUsersSocket.users;
@@ -83,7 +83,10 @@ socket.on("gameStarted", (socketGameStarted)=>{
 socket.on("finishGame",(winner)=>{
     let result = "GAME FINISHED <b>" + winner  + "</b> WINS";
     console.log(result);
-    document.getElementById("readyInfo").innerHTML == result;
+    const span = document.createElement("div");
+    span.align = "center";
+    span.innerHTML = result
+    buttonsDOM.insertAdjacentElement("beforebegin",span);
     socket.emit("finishGameS", true);
 });
 
@@ -94,17 +97,18 @@ socket.on("updateGame",(updateGame)=>{
     if(status != updateGame.status){
         if(updateGame.status == "Day"){
             // Day started
-            setAllButtonsDisable(true);
+            //setAllButtonsDisable(true);
         }else if(updateGame.status == "Vote" && !userKilled){
+            notVoted = true;
             // Vote started
-            setAllButtonsDisable(false);
+            //setAllButtonsDisable(false);
         }else if(updateGame.status == "Night"){
+            notVoted = true;
             // Night started
-            setAllButtonsDisable(true);
+            //setAllButtonsDisable(true);
         }
     }
     status =  updateGame.status;
-    render();
     timerDOM.innerText = time;
     statusDOM.innerText = status;
 });
@@ -124,7 +128,7 @@ function init() {
     socket.emit("userJoined",{player});
 }
 
-function dayNormalUI(isDisabled){
+function dayNormalUI(){
     //voteClear();
     //console.log("dayUI");
     buttonsDOM.innerHTML = "";
@@ -134,7 +138,6 @@ function dayNormalUI(isDisabled){
         const btn = document.createElement("button");
         btn.id = user.username;
         btn.innerText = `VOTE FOR ${user.username}`;
-        btn.disabled = isDisabled;
         btn.style.display = "block";
         btn.style.margin = "10px auto";
         btn.addEventListener("click", (e)=>{vote(e.srcElement.id)})
@@ -145,7 +148,7 @@ function dayNormalUI(isDisabled){
 function werewolfUI(){
     //voteClear();
     //console.log("werewolfUI");
-    setAllButtonsDisable(false);
+    //setAllButtonsDisable(false);
     const buttonsDOM = document.getElementById("vote_buttons");
     buttonsDOM.innerHTML = "";
     users.forEach((user)=>{
@@ -165,7 +168,7 @@ function werewolfUI(){
 function doctorUI(){
     //voteClear();
     //console.log("doctorUI");
-    setAllButtonsDisable(false);
+    //setAllButtonsDisable(false);
     const buttonsDOM = document.getElementById("vote_buttons");
     buttonsDOM.innerHTML = "";
     users.forEach((user)=>{
@@ -211,8 +214,9 @@ function render(){
             li.innerHTML = text;
             ul.appendChild(li);
         });
-        if(!userKilled)
-            dayNormalUI(true);
+        if(!userKilled){
+            dayNormalUI();
+        }
     }else if(status == "Vote"){
         // Vote rendering
         users.forEach((user)=>{
@@ -223,43 +227,42 @@ function render(){
             ul.appendChild(li);
         });
         if(!userKilled)
-            dayNormalUI(false);
+            dayNormalUI();
     }
 }
 
 function doctorVote(voted) {
-    users.forEach(user => {
-        if(user.username.toLowerCase() == voted.toLowerCase()){
-            user.protected = true;;
-            socket.emit("doctor_update_user",{user});
-        }
-    });
-    setAllButtonsDisable(true);
+    if(notVoted == true){
+        users.forEach(user => {
+            if(user.username.toLowerCase() == voted.toLowerCase()){
+                user.protected = true;;
+                socket.emit("doctor_update_user",{user});
+            }
+        });
+        notVoted = false;
+    }
 }
 
 function killVote(voted) {
-    users.forEach(user => {
-        if(user.username.toLowerCase() == voted.toLowerCase()){
-            user.werewolfVote++;
-            socket.emit("vote_update_user",{user});
-        }
-    });
-    setAllButtonsDisable(true);
+    if(notVoted == true){
+        users.forEach(user => {
+            if(user.username.toLowerCase() == voted.toLowerCase()){
+                user.werewolfVote++;
+                socket.emit("vote_update_user",{user});
+            }
+        });
+        notVoted = false;
+    }
 }
 
 function vote(voted) {
-    users.forEach(user => {
-        if(user.username.toLowerCase() == voted.toLowerCase()){
-            user.vote++;
-            socket.emit("vote_update_user",{user});
-        }
-    });
-    setAllButtonsDisable(true);
-}
-
-function setAllButtonsDisable(isDisabled) {
-    let buttons = document.getElementById("vote_buttons").getElementsByTagName('*');
-    for (let i = 0; i < buttons.length; i++){
-            buttons[i].disabled = isDisabled;
+    if(notVoted == true){
+        users.forEach(user => {
+            if(user.username.toLowerCase() == voted.toLowerCase()){
+                user.vote++;
+                socket.emit("vote_update_user",{user});
+            }
+        });
+        notVoted = false;
     }
 }
