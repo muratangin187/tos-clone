@@ -17,6 +17,7 @@ const player = new User(username, password, "Villager", 0);
 player.id = socket.id;
 
 let users = [];
+let usersChat = [];
 
 const timerDOM = document.getElementById('timer');
 const statusDOM = document.getElementById('status');
@@ -93,6 +94,7 @@ socket.on("finishGame",(winner)=>{
 socket.on("updateGame",(updateGame)=>{
     //console.log(status);
     //console.log(updateGame.status);
+    render();
     time = updateGame.time;
     if(status != updateGame.status){
         if(updateGame.status == "Day"){
@@ -125,6 +127,8 @@ function init() {
         socket.emit("userReady", {player});
     });
     usernameDOM.innerText = player.username;
+    document.getElementById("chat-form").addEventListener("submit",(e)=>sendMessage(e));
+    document.getElementById("room-name").innerText = room;
     socket.emit("userJoined",{player});
 }
 
@@ -201,6 +205,7 @@ function render(){
             ul.appendChild(li);
         });
         if(player.role == "Werewolf" && !userKilled){
+            console.log("Werewolf rendering");
             werewolfUI();
         }else if(player.role == "Doctor"  && !userKilled){
             doctorUI();
@@ -215,6 +220,7 @@ function render(){
             ul.appendChild(li);
         });
         if(!userKilled){
+            console.log("Normal rendering");
             dayNormalUI();
         }
     }else if(status == "Vote"){
@@ -266,3 +272,57 @@ function vote(voted) {
         notVoted = false;
     }
 }
+
+
+/////////// CHAT //////////////
+
+function createMessage(username, message){
+    return {username:username,
+            message: message,
+            };
+}
+
+function addMessage(message){
+    asd = message;
+    const div = document.createElement('div');
+    const msgBox = document.querySelector(".chat-messages");
+    if(message.type == 0)
+    div.classList.add("server");
+    else
+        div.classList.add("message");
+    div.innerHTML = 
+    `<p class="meta">${message.username}
+        <span>${message.date}</span></p>
+     <p class="text">${message.message}</p>`;
+    msgBox.appendChild(div);
+}
+
+function sendMessage(e){
+    e.preventDefault();
+    const msgBox  = document.getElementById("msg");
+    const msg = msgBox.value;
+    msgBox.value = "";
+    if(status == "Day")
+        socket.emit("messageD", createMessage(username, msg));
+    else if(status == "Vote")
+        socket.emit("messageD", createMessage(username, msg));
+    else if(status == "Night" && player.role == "Werewolf")
+        socket.emit("messageN", createMessage(username, msg));
+}
+
+socket.on("messageN",(socket)=>{
+    console.log(`Gece mesaji ${socket}`);
+    addMessage(socket); 
+});
+
+socket.on("messageD",(socket)=>addMessage(socket));
+
+socket.on("users", (userss)=> {
+    usersChat = userss;
+    let ul = document.getElementById("usersc");
+    let result = "";
+    usersChat.forEach((user =>{
+        result += `<li>${user}</li>`;
+    }));
+    ul.innerHTML = result;
+});

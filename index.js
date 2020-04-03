@@ -45,6 +45,7 @@ class User{
 //                 new User("Can", "asdasd", "Villager", 1)];
 
 let users = [];
+let usersChat = {All:[], Werewolf:[]};
 let readyGame = false;
 let time = 0;
 let status = "Day";
@@ -52,7 +53,7 @@ let roles = ["Villager","Doctor","Villager","Villager","Werewolf","Werewolf","We
 let gameFinished = false;
 let winner = "";
 let gameLoop;
-let maxTime = 60;
+let maxTime = 10;
 
 io.on("connection",(socket)=>{
     //console.log("Someone connected with id:" + socket.id );
@@ -75,6 +76,43 @@ io.on("connection",(socket)=>{
             }else{
                 socket.id = newUserSocket.player.id;
             }
+            // MESSAGE CHAT
+            //get user and send it to room
+            //socket.join(newUserSocket.player.role);
+            socket.join("All");
+            console.log(newUserSocket.player.role);
+            console.log(newUserSocket.player.role == "Werewolf");
+            if(newUserSocket.player.role == "Werewolf"){
+                socket.join("Werewolf");
+                usersChat.Werewolf.push(newUserSocket.player.username);
+                io.to("Werewolf").emit("users", usersChat.Werewolf);
+            }
+            usersChat.All.push(newUserSocket.player.username);
+            io.to("All").emit("users", usersChat.All);
+
+            socket.emit("messageD", createMessage("Server", `Welcome to chat room ${newUserSocket.player.username}.`, 0));
+            socket.on("messageD", (socket3)=>{
+                    io.to("All").emit("messageD", createMessage(socket3.username, socket3.message,1));
+                });
+            socket.on("messageN", (socket3)=>{
+                    console.log(`Gece mesaji ${socket3.username} mesaj: ${socket3.message}`);
+                    console.log(usersChat);
+                    io.to("Werewolf").emit("messageN", createMessage(socket3.username, socket3.message,1));
+                });
+            //socket.broadcast.to(newUserSocket.player.role).emit("message", createMessage("Server", `${newUserSocket.player.username} joined chat!`, 0));
+            socket.on("disconnect", (socket4)=>{
+            if(newUserSocket.player.role == "Werewolf"){
+                usersChat.Werewolf = usersChat.Werewolf.filter(item => item !== newUserSocket.player.username);
+                io.to("Werewolf").emit("users", usersChat.Werewolf);
+            }else{
+                usersChat.All = usersChat.All.filter(item => item !== newUserSocket.player.username);
+                io.to("All").emit("users", usersChat.All);
+            }
+            });
+
+
+            // CHAT END
+
         }
         //console.log(readyGame); 
     });
@@ -252,4 +290,14 @@ function randomRole(){
     roles.splice(randomIndex, 1);
     console.log(roles);
     return randomString;
+}
+
+
+/////////// CHAT //////////////
+
+function createMessage(username, message, type){
+    return {username:username,
+            message: message,
+            date: moment().format("LT"),
+            type: type};
 }
