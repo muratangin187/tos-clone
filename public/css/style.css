@@ -1,0 +1,83 @@
+html, body {
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  transition: 0.5s;
+}
+body.night
+{
+    background: #00151f;
+}
+#toggle
+{
+    position: relative;
+    left: 35vw;
+    top: 15vh;
+    background: #fff;
+    border: 2px solid #00151f;
+    width: 300px;
+    height: 50px;
+    cursor: pointer;
+    border-radius: 20px;
+    transition: 2s;
+}
+#toggle i{
+    margin-top: 8px;
+    transition: 2s;
+}
+#toggle.active i{
+  margin-top: 8px;
+  color: white;
+}
+#toggle.active
+{
+    background: #00151f;
+    border: 2px solid #fff;
+}
+#toggle:before
+{
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 42px;
+    height: 42px;
+    background: #00151f;
+    border-radius: 50%;
+    transition: 2s;
+}
+#toggle.active:before
+{
+    left:85%;
+    background: #fff;
+}
+.content h1
+{
+    margin: 0 0 20px;
+    padding: 0;
+    color: #000;
+    transition: 0.5s;
+}
+.content p
+{
+    margin: 0;
+    padding: 0;
+    color: #000;
+    transition: 0.5s;
+    font-size: 18px;
+}
+body.night .content h1,
+body.night .content p
+{
+    color: #fff;
+}
+
+
+.min-100 {
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.list-group{
+  max-height: 50vh;
+}

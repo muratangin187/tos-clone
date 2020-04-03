@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!-- <canvas width="1200" id="canvas" height="800" style="border: 1px solid black;"></canvas> -->
+
+    <div id="readyInfo" style="margin: 20px 0px;" align="center">
+        
+    </div>
+
+    <div id="info" style="margin: 20px 0px;" hidden align="center">
+        <span id="timer"></span> second left.
+        <span id="status">Day</span>
+    </div>
+
+    <div id="user_info" style="margin: 20px 0px;" align="center">
+        <span id="user_name" style="font-weight: bold;"></span>, your role is <span id="user_role" style="color: green; font-weight: bold;"></span><button id="ready">Ready</button>
+    </div>
+
+    <ul id="users">
+    </ul>
+
+    <div id="vote_buttons">
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.9.3/qs.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="p5.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

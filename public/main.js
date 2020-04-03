@@ -1,5 +1,5 @@
-//const canvas = document.getElementById("canvas");
-//const context = canvas.getContext("2d");
+const socket = io();
+const {username, password, room} = Qs.parse(location.search, {ignoreQueryPrefix: true});
 
 class User{
     constructor(username, password, role, status){
@@ -13,128 +13,183 @@ class User{
     }
 }
 
-const users = [new User("Murat", "12345", "Villager", 1),
-                new User("Ahmet", "6789", "Werewolf", 1),
-                new User("Mehmet", "asdasd", "Doctor", 1),
-                new User("Kardelen", "asdasd", "Werewolf", 1),
-                new User("Musa", "asdasd", "Werewolf", 1),
-                new User("Alper", "asdasd", "Villager", 1),
-                new User("Can", "asdasd", "Villager", 1)];
+const player = new User(username, password, "Villager", 0);
+player.id = socket.id;
 
-const player = users[1];
+let users = [];
 
-const timer = document.getElementById('timer');
-const status = document.getElementById('status');
+const timerDOM = document.getElementById('timer');
+const statusDOM = document.getElementById('status');
 const buttonsDOM = document.getElementById("vote_buttons");
 let currentUI;
-
+let time = 0;
+let status = "Day";
 let elapsedTime = 0;
+let userKilled = false;
 
-function setup() {
-    const usernameDOM = document.getElementById('user_name');
+// io things
+socket.on("current_users", (currentUsersSocket)=>{
+    users = currentUsersSocket.users;
+    render();
+});
+
+socket.on("role_change",(newRoleSocket)=>{
+    player.role = newRoleSocket;
     const userroleDOM = document.getElementById('user_role');
-    usernameDOM.innerText = player.username;
     userroleDOM.innerText = player.role;
-    dayNormalUI(true);
+});
+
+socket.on("after_killed_users", (afterKilledUsersSocket)=>{
+    //console.table(afterKilledUsersSocket.users);
+    let indexs = -1;
+    afterKilledUsersSocket.users.forEach((user, index)=>{
+        if(user.username == player.username)
+            indexs = index;
+    });
+    //console.log(`user.username=, player.username=${player.username}, index=${indexs}`);
+    if(indexs == -1){
+        // death
+        userKilled = true;
+    }else{
+        userKilled = false;
+    }
+    users.forEach((user, index)=>{
+        let isKilled = true;
+        afterKilledUsersSocket.users.forEach((newUsers)=>{
+            if(user.username == newUsers)
+                isKilled = false;
+        });
+        if(isKilled){
+                //document.querySelector("button#"+users[index].username).remove();
+        }
+    });
+    users = afterKilledUsersSocket.users;
+    render();
+});
+
+// socket.on("error",(socketError)=>{
+//     document.body.innerHTML = socketError;
+// });
+
+socket.on("gameStarted", (socketGameStarted)=>{
+    if(socketGameStarted){
+        document.getElementById("readyInfo").innerText = "Game is started";
+        document.getElementById("info").attributes.removeNamedItem("hidden");
+    }else{
+        document.getElementById("readyInfo").innerText = "Game is not started";
+    }
+});
+
+socket.on("finishGame",(winner)=>{
+    let result = "GAME FINISHED <b>" + winner  + "</b> WINS";
+    console.log(result);
+    document.getElementById("readyInfo").innerHTML == result;
+    socket.emit("finishGameS", true);
+});
+
+socket.on("updateGame",(updateGame)=>{
+    //console.log(status);
+    //console.log(updateGame.status);
+    time = updateGame.time;
+    if(status != updateGame.status){
+        if(updateGame.status == "Day"){
+            // Day started
+            setAllButtonsDisable(true);
+        }else if(updateGame.status == "Vote" && !userKilled){
+            // Vote started
+            setAllButtonsDisable(false);
+        }else if(updateGame.status == "Night"){
+            // Night started
+            setAllButtonsDisable(true);
+        }
+    }
+    status =  updateGame.status;
+    render();
+    timerDOM.innerText = time;
+    statusDOM.innerText = status;
+});
+
+init();
+
+function init() {
+    const usernameDOM = document.getElementById('user_name');
+    
+    const readyDOM = document.getElementById('ready');
+    readyDOM.addEventListener("click",(e)=>{
+        player.status = 1;
+        readyDOM.disabled = true;
+        socket.emit("userReady", {player});
+    });
+    usernameDOM.innerText = player.username;
+    socket.emit("userJoined",{player});
 }
 
 function dayNormalUI(isDisabled){
-    
-    if(currentUI != "Day"){
-        voteClear();
-        buttonsDOM.innerHTML = "";
-        users.forEach((user)=>{
-            //<button id="murat">VOTE FOR MURAT</button>
-            const btn = document.createElement("button");
-            btn.id = user.username;
-            btn.innerText = `VOTE FOR ${user.username}`;
-            btn.disabled = isDisabled;
-            btn.style.display = "block";
-            btn.style.margin = "10px auto";
-            btn.addEventListener("click", (e)=>{vote(e.srcElement.id)})
-            buttonsDOM.appendChild(btn);
-        });
-    }
-    currentUI = "Day";
+    //voteClear();
+    //console.log("dayUI");
+    buttonsDOM.innerHTML = "";
+    //console.table(users);
+    users.forEach((user)=>{
+        //<button id="murat">VOTE FOR MURAT</button>
+        const btn = document.createElement("button");
+        btn.id = user.username;
+        btn.innerText = `VOTE FOR ${user.username}`;
+        btn.disabled = isDisabled;
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+        btn.addEventListener("click", (e)=>{vote(e.srcElement.id)})
+        buttonsDOM.appendChild(btn);
+    });
 }
 
 function werewolfUI(){
-    if(currentUI != "Werewolf"){
-        voteClear();
-        setAllButtonsDisable(false);
-        const buttonsDOM = document.getElementById("vote_buttons");
-        buttonsDOM.innerHTML = "";
-        users.forEach((user)=>{
-            //<button id="murat">VOTE FOR MURAT</button>
-            const btn = document.createElement("button");
-            btn.id = user.username;
-            btn.innerText = `KILL ${user.username}`;
-            btn.style.backgroundColor = "red";
-            btn.style.color = "white";
-            btn.style.display = "block";
-            btn.style.margin = "10px auto";
-            btn.addEventListener("click", (e)=>{killVote(e.srcElement.id);})
-            buttonsDOM.appendChild(btn);
-        });
-    }
-    currentUI = "Werewolf";
+    //voteClear();
+    //console.log("werewolfUI");
+    setAllButtonsDisable(false);
+    const buttonsDOM = document.getElementById("vote_buttons");
+    buttonsDOM.innerHTML = "";
+    users.forEach((user)=>{
+        //<button id="murat">VOTE FOR MURAT</button>
+        const btn = document.createElement("button");
+        btn.id = user.username;
+        btn.innerText = `KILL ${user.username}`;
+        btn.style.backgroundColor = "red";
+        btn.style.color = "white";
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+        btn.addEventListener("click", (e)=>{killVote(e.srcElement.id);})
+        buttonsDOM.appendChild(btn);
+    });
 }
 
 function doctorUI(){
-    if(currentUI != "Doctor"){
-        voteClear();
-        setAllButtonsDisable(false);
-        const buttonsDOM = document.getElementById("vote_buttons");
-        buttonsDOM.innerHTML = "";
-        users.forEach((user)=>{
-            //<button id="murat">VOTE FOR MURAT</button>
-            const btn = document.createElement("button");
-            btn.id = user.username;
-            btn.innerText = `PROTECT ${user.username}`;
-            btn.style.backgroundColor = "green";
-            btn.style.color = "white";
-            btn.style.display = "block";
-            btn.style.margin = "10px auto";
-            btn.addEventListener("click", (e)=>{doctorVote(e.srcElement.id);})
-            buttonsDOM.appendChild(btn);
-        });
-    }
-    currentUI = "Doctor";
-}
-
-function draw(){
-
-    render();
-
-    //game loop
-    elapsedTime += deltaTime;
-    if(elapsedTime > 1000){
-        if(timer.innerText == "0"){
-            if(status.innerText == "Day"){
-                setAllButtonsDisable(false);
-                status.innerText = "Vote";
-            }else if(status.innerText == "Vote"){
-                setAllButtonsDisable(true);
-                killMostVoted();
-                status.innerText = "Night";
-            }else if(status.innerText == "Night"){
-                killMostVoted();
-                status.innerText = "Day";
-            }
-            timer.innerText = 5;
-        }else{
-            timer.innerText = timer.innerText - 1;
-        }
-        elapsedTime = 0;
-    }
+    //voteClear();
+    //console.log("doctorUI");
+    setAllButtonsDisable(false);
+    const buttonsDOM = document.getElementById("vote_buttons");
+    buttonsDOM.innerHTML = "";
+    users.forEach((user)=>{
+        //<button id="murat">VOTE FOR MURAT</button>
+        const btn = document.createElement("button");
+        btn.id = user.username;
+        btn.innerText = `PROTECT ${user.username}`;
+        btn.style.backgroundColor = "green";
+        btn.style.color = "white";
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+        btn.addEventListener("click", (e)=>{doctorVote(e.srcElement.id);})
+        buttonsDOM.appendChild(btn);
+    });
 }
 
 function render(){
     //<li id="murat">murat <span id="murat_vote">0</span></li>
     const ul = document.getElementById("users");
     ul.innerHTML = "";
-    if(status.innerText == "Night"){
+    //console.log(`Current status is ${status}`);
+    if(status == "Night"){
         // Night rendering
+        //console.log("night rendering for role " + player.role);
         users.forEach((user)=>{
             const li = document.createElement("li");
             li.id = user.username;
@@ -142,12 +197,12 @@ function render(){
             li.innerHTML = text;
             ul.appendChild(li);
         });
-        if(player.role == "Werewolf"){
+        if(player.role == "Werewolf" && !userKilled){
             werewolfUI();
-        }else if(player.role == "Doctor"){
+        }else if(player.role == "Doctor"  && !userKilled){
             doctorUI();
         }
-    }else if(status.innerText == "Day"){
+    }else if(status == "Day"){
         // Day rendering
         users.forEach((user)=>{
             const li = document.createElement("li");
@@ -156,8 +211,9 @@ function render(){
             li.innerHTML = text;
             ul.appendChild(li);
         });
-        dayNormalUI(true);
-    }else if(status.innerText == "Vote"){
+        if(!userKilled)
+            dayNormalUI(true);
+    }else if(status == "Vote"){
         // Vote rendering
         users.forEach((user)=>{
             const li = document.createElement("li");
@@ -166,51 +222,16 @@ function render(){
             li.innerHTML = text;
             ul.appendChild(li);
         });
-        dayNormalUI(false);
-    }
-}
-
-function voteClear(){
-    users.forEach((user)=>{
-        user.werewolfVote = 0;
-        user.vote = 0;
-    });
-}
-
-function killMostVoted() {
-    let max = 0;
-    let selectedUserId;
-    if(status.innerText == "Vote"){
-        users.forEach((user, index) => {
-            if(max < user.vote)
-                selectedUserId = index;
-        });
-        if(selectedUserId != undefined){
-            console.log("button#"+users[selectedUserId].username);
-            document.querySelector("button#"+users[selectedUserId].username).remove();
-            users.splice(selectedUserId, 1);
-        }
-    }else if(status.innerText == "Night"){
-        users.forEach((user, index) => {
-            if(max < user.werewolfVote)
-                selectedUserId = index;
-        });
-        if(selectedUserId != undefined){
-            if(!users[selectedUserId].protected){
-                console.log("button#"+users[selectedUserId].username);
-                document.querySelector("button#"+users[selectedUserId].username).remove();
-                users.splice(selectedUserId, 1);
-            }else{
-                console.log(`SOMEONE PROTECTED(${users[selectedUserId].username})`);
-            }
-        }
+        if(!userKilled)
+            dayNormalUI(false);
     }
 }
 
 function doctorVote(voted) {
     users.forEach(user => {
         if(user.username.toLowerCase() == voted.toLowerCase()){
-            user.protected++;
+            user.protected = true;;
+            socket.emit("doctor_update_user",{user});
         }
     });
     setAllButtonsDisable(true);
@@ -220,6 +241,7 @@ function killVote(voted) {
     users.forEach(user => {
         if(user.username.toLowerCase() == voted.toLowerCase()){
             user.werewolfVote++;
+            socket.emit("vote_update_user",{user});
         }
     });
     setAllButtonsDisable(true);
@@ -229,6 +251,7 @@ function vote(voted) {
     users.forEach(user => {
         if(user.username.toLowerCase() == voted.toLowerCase()){
             user.vote++;
+            socket.emit("vote_update_user",{user});
         }
     });
     setAllButtonsDisable(true);
@@ -237,7 +260,6 @@ function vote(voted) {
 function setAllButtonsDisable(isDisabled) {
     let buttons = document.getElementById("vote_buttons").getElementsByTagName('*');
     for (let i = 0; i < buttons.length; i++){
-        if(users[i] != player)
-        buttons[i].disabled = isDisabled;
+            buttons[i].disabled = isDisabled;
     }
 }

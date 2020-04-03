@@ -2,28 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Werewolf Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- <canvas width="1200" id="canvas" height="800" style="border: 1px solid black;"></canvas> -->
-
-    <div id="user_info" style="margin: 20px 0px;" align="center">
-        <span id="user_name" style="font-weight: bold;"></span>, your role is <span id="user_role" style="color: green; font-weight: bold;"></span>
+    <div class="container md-5">
+        <h2 class="row justify-content-center text-center">Play Game!</h2>
+        <form action="/game.html" method="get">
+            <input name="username" type="text" class="form-control m-3 w-50 mx-auto" placeholder="Username" aria-label="Password" aria-describedby="basic-addon1">
+            <input name="password" type="password" class="form-control m-3 w-50 mx-auto" placeholder="Password" aria-label="Password" aria-describedby="basic-addon1">
     </div>
-
-    <div id="info">
-        <span id="timer">5</span> second left.
-        <span id="status">Day</span>
+    <div class="container mt-5">
+        <h2 class="row justify-content-center text-center p-5">Lobby</h2>
+            <div class="input-group m-3 input-group-lg justify-content-center text-center">
+                <span class="input-group-text w-25 border-0 rounded-0" id="inputGroup-sizing-lg">Room 1</span>
+                <span class="input-group-text w-25 border-0 rounded-0 font-weight-bold" id="inputGroup-sizing-lg">0/8</span>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary text-light bg-success" type="submit" name="room" value="room1">Join</button>
+                  </div>
+            </div>
+            <div class="input-group m-3 input-group-lg justify-content-center text-center">
+                <span class="input-group-text w-25 border-0 rounded-0" id="inputGroup-sizing-lg">Room 2</span>
+                <span class="input-group-text w-25 border-0 rounded-0 font-weight-bold" id="inputGroup-sizing-lg">0/8</span>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary text-light bg-success" type="submit" name="room" value="room2">Join</button>
+                  </div>
+            </div>
+            <div class="input-group m-3 input-group-lg justify-content-center text-center">
+                <span class="input-group-text w-25 border-0 rounded-0" id="inputGroup-sizing-lg">Room 3</span>
+                <span class="input-group-text w-25 border-0 rounded-0 font-weight-bold" id="inputGroup-sizing-lg">0/8</span>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary text-light bg-success" type="submit" name="room" value="room3">Join</button>
+                  </div>
+            </div>
+            <div class="input-group m-3 input-group-lg justify-content-center text-center">
+                <span class="input-group-text w-25 border-0 rounded-0" id="inputGroup-sizing-lg">Room 4</span>
+                <span class="input-group-text w-25 border-0 rounded-0 font-weight-bold" id="inputGroup-sizing-lg">0/8</span>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary text-light bg-success" type="submit" name="room" value="room4">Join</button>
+                  </div>
+            </div>
+            <div class="input-group m-3 input-group-lg justify-content-center text-center">
+                <span class="input-group-text w-25 border-0 rounded-0" id="inputGroup-sizing-lg">Room 5</span>
+                <span class="input-group-text w-25 border-0 rounded-0 font-weight-bold" id="inputGroup-sizing-lg">0/8</span>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary text-light bg-success" type="submit" name="room" value="room5">Join</button>
+                  </div>
+            </div>
+        </form>
     </div>
-
-    <ul id="users">
-    </ul>
-
-    <div id="vote_buttons">
-    </div>
-
-    <script src="p5.js"></script>
-    <script src="main.js"></script>
 </body>
 </html>
